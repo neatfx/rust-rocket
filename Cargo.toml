@@ -11,4 +11,4 @@ serde = { version = "1.0", features = ["derive"] }
 [dependencies.rocket_contrib]
 version = "0.4.4"
 default-features = false
-features = ["json", "redis_pool"]
+features = ["json", "redis_pool", "serve"]

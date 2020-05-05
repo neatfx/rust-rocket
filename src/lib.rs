@@ -5,6 +5,8 @@ extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
 
+use rocket_contrib::serve::StaticFiles;
+
 mod config;
 mod db;
 mod error_catchers;
@@ -25,5 +27,6 @@ pub fn rocket_ins() -> rocket::Rocket {
         .attach(db::RedisDbConn::fairing())
         .manage(state::HitCount::new())
         .mount("/", routes::routes())
+        .mount("/public", StaticFiles::from("static/")) // 使用 rocket_contrib 提供的静态文件服务功能
         .register(error_catchers::catchers())
 }
