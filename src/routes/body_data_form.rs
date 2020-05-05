@@ -1,10 +1,10 @@
 use rocket::http::RawStr;
-use rocket::request::{Form, FromFormValue};
+use rocket::request::{Form, FormDataError, FormError, FromFormValue};
 use rocket::response::Redirect;
 use rocket::Route;
 
 pub fn routes() -> Vec<Route> {
-    routes![login, user_page]
+    routes![login, user_page, sink]
 }
 
 #[derive(Debug)]
@@ -72,4 +72,36 @@ fn login(user: Form<UserLogin>) -> Result<Redirect, String> {
 #[get("/body-data/form/user/<username>")]
 fn user_page(username: &RawStr) -> String {
     format!("This is {}'s page.", username)
+}
+
+/// 字段重命名 & 枚举实现 FromFormValue 特质
+
+#[derive(Debug, FromFormValue)]
+enum FormOption {
+    A,
+    B,
+    C,
+}
+
+#[derive(Debug, FromForm)]
+struct FormInput<'r> {
+    checkbox: bool,
+    number: usize,
+    #[form(field = "type")]
+    radio: FormOption,
+    password: &'r RawStr,
+    #[form(field = "textarea")]
+    text_area: String,
+    select: FormOption,
+}
+
+#[post("/body-data/form", data = "<sink>")]
+fn sink(sink: Result<Form<FormInput>, FormError>) -> String {
+    match sink {
+        Ok(form) => format!("{:?}", &*form),
+        Err(FormDataError::Io(_)) => format!("Form input was invalid UTF-8."),
+        Err(FormDataError::Malformed(f)) | Err(FormDataError::Parse(_, f)) => {
+            format!("Invalid form input: {}", f)
+        }
+    }
 }
