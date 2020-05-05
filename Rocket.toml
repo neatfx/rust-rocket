@@ -1,0 +1,39 @@
+[global]
+secret_key = "VZPeW+ubdYHEwkSnRXl46apbRby/qQSFTeGmV0+kxu4="
+[global.limits]
+forms = 131072
+# [global.tls]
+# certs = "/tls/certs.pem"
+# key = "/tls/key.pem"
+
+[development]
+address = "localhost"
+port = 8000
+workers = 4
+keep_alive = 5
+log = "normal"
+limits = { forms = 32768 }
+template_dir = "dev_templates/"
+assets_dir = "dev_assets/"
+databases = { redis = { url = "redis://127.0.0.1" }}
+secret_key = "VZPeW+ubdYHEwkSnRXl46apbRby/qQSFTeGmV0+kxu4="
+
+# [staging]
+# address = "0.0.0.0"
+# port = 8000
+# workers = [number of cpus * 2]
+# keep_alive = 5
+# log = "normal"
+# secret_key = [randomly generated at launch]
+# limits = { forms = 32768 }
+
+# [production]
+# address = "0.0.0.0"
+# port = 8000
+# workers = [number of cpus * 2]
+# keep_alive = 5
+# log = "critical"
+# secret_key = [randomly generated at launch]
+# limits = { forms = 32768 }
+# template_dir = "prod_templates/"
+# assets_dir = "prod_assets/"
