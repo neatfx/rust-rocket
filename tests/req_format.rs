@@ -44,5 +44,8 @@ fn get_json_format() {
     let mut response = client.get("/format/1").dispatch();
 
     assert_eq!(response.status(), Status::Ok);
-    assert_eq!(response.body_string(), Some("{\"content\":\"message from rust\",\"id\":1}".into()));
+    assert_eq!(
+        response.body_string(),
+        Some("{\"content\":\"message from rust\",\"id\":1}".into())
+    );
 }
