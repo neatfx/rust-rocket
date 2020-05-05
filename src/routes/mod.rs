@@ -1,5 +1,6 @@
 use rocket::Route;
 
+mod body_data_form;
 mod body_data_streaming;
 mod configuration;
 mod cookies;
@@ -16,6 +17,7 @@ pub fn routes() -> Vec<Route> {
     let mut routes = vec![];
 
     routes.append(&mut body_data_streaming::routes());
+    routes.append(&mut body_data_form::routes());
     routes.append(&mut configuration::routes());
     routes.append(&mut cookies::routes());
     routes.append(&mut database::routes());
