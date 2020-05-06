@@ -12,6 +12,6 @@ fn test_config_in_assets_dir() {
     assert_eq!(response.status(), Status::Ok);
     assert_eq!(
         response.body_string(),
-        Some("Route: /config/dev.log ---> Path: /dev_assets/dev.log".into())
+        Some("Route: /config/dev.log ---> Path: /assets/dev.log".into())
     );
 }
