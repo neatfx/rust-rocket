@@ -247,30 +247,40 @@ Rocket 中的模版支持是引擎无关的。使用何种引擎渲染模版取�
 
 ## Typed URIs
 
+Rocket 中的 `uri!`  宏能够以可靠、类型安全、`URI-safe` 的方式创建应用路由 `URIs`。不匹配的类型或路由参数会在编译时被捕获，并且，路由 `URIs` 的变化会自动反映到生成的 `URIs` 中。
+
+`uri!` 宏返回一个 `Origin` 结构，所有传递给 `uri!` 的值都会使用值类型的 `UriDisplay` 实现渲染到 URI 的合适位置，`UriDisplay` 实现确保渲染值是 URI 安全的。
+
+注意，`Origin` 实现了 `Into<Uri>` ( 以及通过扩展 `TryInto<Uri>` )，因此可以根据需要使用 `into()` 转换为 `Uri` 并传递给 `Redirect::to()` 等方法。
+
 ```rust
 #[get("/person/<name>?<age>")]
 fn person(name: String, age: Option<u8>) { /* .. */ }
 ```
 
+指向以上路由的 `URIs` 可通过以下方式创建：
+
 ```rust
-// with unnamed parameters, in route path declaration order
+// 使用不具名参数，以路由路径声明的顺序创建
 let mike = uri!(person: "Mike Smith", 28);
 assert_eq!(mike.to_string(), "/person/Mike%20Smith?age=28");
 
-// with named parameters, order irrelevant
+// 使用具名参数，顺序无关
 let mike = uri!(person: name = "Mike", age = 28);
 let mike = uri!(person: age = 28, name = "Mike");
 assert_eq!(mike.to_string(), "/person/Mike?age=28");
 
-// with a specific mount-point
+// 指定挂载点
 let mike = uri!("/api", person: name = "Mike", age = 28);
 assert_eq!(mike.to_string(), "/api/person/Mike?age=28");
 
-// with optional (defaultable) query parameters ignored
+// 忽略可选请求参数
 let mike = uri!(person: "Mike", _);
 let mike = uri!(person: name = "Mike", age = _);
 assert_eq!(mike.to_string(), "/person/Mike");
 ```
+
+Rocket 会告知编译时任何参数不匹配的情况：
 
 ```bash
 error: person route uri expects 2 parameters but 1 was supplied
@@ -291,9 +301,17 @@ error: the trait bound u8: FromUriParam<Query, &str> is not satisfied
   |
 ```
 
+推荐始终用 `uri!` 宏来构建路由 `URIs`。
+
 ### Ignorables
 
+当使用 `_` 忽略请求参数时，路由 `URI` 中对应的类型必须实现 `Ignorable` 特质。被忽略的参数不会被插入到结果 `Origin` 中。
+
+Path 参数不可忽略。
+
 ### Deriving UriDisplay
+
+自定义类型可衍生获得 `UriDisplay` 特质。出现在 URI 路径部分中的类型，使用 `UriDisplayPath` 进行衍生，出现在 URI 请求部分的类型，使用 `UriDisplayQuery` 进行衍生。
 
 ```rust
 use rocket::http::RawStr;
@@ -308,6 +326,8 @@ struct UserDetails<'r> {
 #[post("/user/<id>?<details..>")]
 fn add_user(id: usize, details: Form<UserDetails>) { /* .. */ }
 ```
+
+以上代码通过使用 `UriDisplayQuery`，会自动生成一个 `UriDisplay<Query>` 的实现，允许通过 `uri!` 生成指向 `add_user` 的 `URIs`：
 
 ```rust
 let link = uri!(add_user: 120, UserDetails { age: Some(20), nickname: "Bob".into() });
