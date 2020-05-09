@@ -5,15 +5,18 @@
 文档阅读笔记位于 `docs/` 目录。
 
 ```bash
-# 进入 Rocket 项目目录
-cd rocket-project-dir
+# 下载代码
+git clone git@github.com:neatfx/rust-rocket.git
 
-# 切换 Rust 版本（ 框架依赖 `nightly` 版本 Rust ）
+# 进入项目目录
+cd rust-rocket
+
+# 切换 Rust 版本（ 框架依赖 `nightly` 版本 ）
 rustup override set nightly
 
-# 运行服务
+# 运行
 cargo run
 
-# 集成测试（ 无需事先运行服务 ）
+# 测试
 cargo test
 ```
