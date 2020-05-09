@@ -1,6 +1,6 @@
 # Responses
 
-可返回实现了 `Responder` 特质的类型值
+路由处理器（ route handler ）可返回任意实现了 `Responder` 特质的类型值。
 
 ## Responder
 
@@ -249,9 +249,11 @@ Rocket 中的模版支持是引擎无关的。使用何种引擎渲染模版取�
 
 Rocket 中的 `uri!`  宏能够以可靠、类型安全、`URI-safe` 的方式创建应用路由 `URIs`。不匹配的类型或路由参数会在编译时被捕获，并且，路由 `URIs` 的变化会自动反映到生成的 `URIs` 中。
 
-`uri!` 宏返回一个 `Origin` 结构，所有传递给 `uri!` 的值都会使用值类型的 `UriDisplay` 实现渲染到 URI 的合适位置，`UriDisplay` 实现确保渲染值是 URI 安全的。
+`uri!` 宏会将传给它的值插入指定路由形成 `URI`，然后返回一个 `Origin` 结构。
 
-注意，`Origin` 实现了 `Into<Uri>` ( 以及通过扩展 `TryInto<Uri>` )，因此可以根据需要使用 `into()` 转换为 `Uri` 并传递给 `Redirect::to()` 等方法。
+所有传递给 `uri!` 的值都会使用值类型的 `UriDisplay` 实现渲染到 `URI` 中的合适位置，`UriDisplay` 实现确保渲染后的值是 `URI-safe` 的。
+
+注意，`Origin` 实现了 `Into<Uri>` ( 并可通过 `TryInto<Uri>` 扩展 )，因而它可以根据需要使用 `into()` 转换为一个 `Uri` 并传递给 `Redirect::to()` 等方法。
 
 ```rust
 #[get("/person/<name>?<age>")]
@@ -301,17 +303,17 @@ error: the trait bound u8: FromUriParam<Query, &str> is not satisfied
   |
 ```
 
-推荐始终用 `uri!` 宏来构建路由 `URIs`。
+推荐使用 `uri!` 宏作为构建路由 `URIs` 的唯一方式。
 
 ### Ignorables
 
-当使用 `_` 忽略请求参数时，路由 `URI` 中对应的类型必须实现 `Ignorable` 特质。被忽略的参数不会被插入到结果 `Origin` 中。
+使用 `_` 忽略请求参数时，路由 `URI` 中对应的类型必须实现 `Ignorable` 特质。被忽略参数不会添加到结果 `Origin` 中。
 
-Path 参数不可忽略。
+路径参数是不可忽略的。
 
 ### Deriving UriDisplay
 
-自定义类型可衍生获得 `UriDisplay` 特质。出现在 URI 路径部分中的类型，使用 `UriDisplayPath` 进行衍生，出现在 URI 请求部分的类型，使用 `UriDisplayQuery` 进行衍生。
+自定义类型可衍生获得 `UriDisplay` 特质。出现在 `URI` 路径部分中的类型，使用 `UriDisplayPath` 进行衍生，出现在 `URI` 请求部分的类型，使用 `UriDisplayQuery` 进行衍生。
 
 ```rust
 use rocket::http::RawStr;
@@ -327,7 +329,7 @@ struct UserDetails<'r> {
 fn add_user(id: usize, details: Form<UserDetails>) { /* .. */ }
 ```
 
-以上代码通过使用 `UriDisplayQuery`，会自动生成一个 `UriDisplay<Query>` 的实现，允许通过 `uri!` 生成指向 `add_user` 的 `URIs`：
+以上代码通过使用 `UriDisplayQuery`，自动生成一个 `UriDisplay<Query>` 的实现，从而允许使用 `uri!` 生成指向 `add_user` 的 `URIs`：
 
 ```rust
 let link = uri!(add_user: 120, UserDetails { age: Some(20), nickname: "Bob".into() });
@@ -336,7 +338,17 @@ assert_eq!(link.to_string(), "/user/120?age=20&nickname=Bob");
 
 ### Typed URI Parts
 
+`UriPart` 特质将标记为 `URI` 的一部分的类型分类为 `Path` 或 `Query`。换言之，实现了 `UriPart` 的类型是在类型层面上表示 URI 部分的标记类型。像 `UriDisplay` 以及 `FromUriParam` 这样的特质通过 `UriPart: P: UriPart` 与一个泛型参数进行绑定。这将为每个特质创建 2 个实例：`UriDisplay<Query>` 及 `UriDisplay<Path>`, `FromUriParam<Query>` 及 `FromUriParam<Path>`。
+
+正如名称暗示的那样，`Path` 版本的特质被用于在 `URI` 的路径部分显示参数，而 `Query` 版本用于在 `URI` 的请求部分显示参数。这些不同版本的特质确实存在区分，在类型层面上，在值被写入 URI 的位置，允许为了类型安全而不顾及两个位置间的差异。例如，在请求部分使用一个 `None` 值是有效的，而在路径部分忽略整个参数却是无效的。通过使用类型系统，凭借不同的`FromUriParam<Path>` 以及 `FromUriParam<Query>` 实现进行区分，这些条件能够以合适的方式得到强制执行。
+
 ### Conversions
+
+`FromUriParam` 用于对传给 `uri!` 的值在其使用 `UriDisplay` 进行显示前实施转换。
+
+对于 `URI` 中的一部分 `P`，如果存在实现了 `FromUriParam<P, S>` 的类型 `T`，那么，对于在声明中的 `P` 部分使用了类型 `T` 的路由 `URI` 参数，可在 `uri!` 中使用类型 `S` 的值。
+
+例如，以下实现由 Rocket 提供，对于声明为 `String` 类型的路由 `URI` 参数，允许在 `uri!` 调用中使用一个 `&str`。
 
 ```rust
 impl<'a, P: UriPart> FromUriParam<P, &'a str> for String {
@@ -344,9 +356,24 @@ impl<'a, P: UriPart> FromUriParam<P, &'a str> for String {
 }
 ```
 
+其它需知的转换还包括：
+
+- `&str` to `RawStr`
+- `String` to `&str`
+- `String` to `RawStr`
+- `T` to `Option<T>`
+- `T` to `Result<T, E>`
+- `T` to `Form<T>`
+- `&str` to `&Path`
+- `&str` to `PathBuf`
+
+嵌套转换：
+
 ```rust
 #[get("/person/<id>?<details..>")]
 fn person(id: usize, details: Option<Form<UserDetails>>) { /* .. */ }
 
 uri!(person: id = 100, details = UserDetails { age: Some(20), nickname: "Bob".into() });
 ```
+
+更多细节可参考 [FromUriParam](https://api.rocket.rs/v0.4/rocket/http/uri/trait.FromUriParam.html)
