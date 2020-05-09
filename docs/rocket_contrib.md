@@ -1,6 +1,6 @@
-# 附加库
+# rocket_contrib
 
-[`rocket_contrib`](https://api.rocket.rs/v0.4/rocket_contrib/)
+[Crate rocket_contrib](https://api.rocket.rs/v0.4/rocket_contrib/)
 
 |  模块  |  功能说明  |
 | :---: | :---: |
